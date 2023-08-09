@@ -1,0 +1,19 @@
+Listen = "0.0.0.0:9001"
+MysqlDns = "root:mysql_pass@tcp(172.22.11.47:3306)/chatplus_service?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=True&loc=Local"
+DataDir = "./data"
+Debug = false
+AlApiToken = "bnvcCn2BV2exi9iR"
+
+[Session]
+  SecretKey = "864glusvfvqcgstkbj25r3nknukhizr15zq5rtnupyfy10qbnfy6jn0u4grjvxvw"
+  Name = "CHAT_PLUS_SESSION"
+  Path = "/"
+  Domain = "localhost"
+  MaxAge = 86400
+  Secure = true
+  HttpOnly = false
+  SameSite = 2
+
+[Manager]
+  Username = "admin"
+  Password = "admin123@###"

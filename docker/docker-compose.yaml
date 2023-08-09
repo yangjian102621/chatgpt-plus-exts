@@ -1,0 +1,14 @@
+version: '3'
+services:
+  chatgpt-plus-exts:
+    image: registry.cn-hangzhou.aliyuncs.com/geekmaster/chatgpt-plus-exts:v1.0.1
+    container_name: chatgpt-plus-exts
+    restart: always
+    environment:
+      - CONFIG_FILE=config.toml
+
+    ports:
+      - "9010:9010"
+    volumes:
+      - ./data:/var/www/app/data
+      - ./config.toml:/var/www/app/config.toml

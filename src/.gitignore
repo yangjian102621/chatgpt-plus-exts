@@ -1,0 +1,6 @@
+# Logs
+*.log
+tmp
+bin
+data
+config.toml
