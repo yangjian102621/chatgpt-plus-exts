@@ -4,6 +4,7 @@ import (
 	"chatgpt-plus-exts/core"
 	"chatgpt-plus-exts/handler"
 	logger2 "chatgpt-plus-exts/logger"
+	"chatgpt-plus-exts/modules/mj"
 	wexin "chatgpt-plus-exts/modules/weixin"
 	"chatgpt-plus-exts/store"
 	"context"
@@ -72,14 +73,14 @@ func main() {
 		// creating bots
 		fx.Provide(func(config *core.Config, mqs *store.RedisMQs) *wexin.WeChatBot {
 			if config.WeChatConfig.Enabled {
-				return wexin.NewWeChatBot(&config.WeChatConfig, mqs)
+				return wexin.NewWeChatBot(config, mqs)
 			}
 			return nil
 		}),
 		fx.Invoke(func(config *core.Config, bot *wexin.WeChatBot) {
 			if config.WeChatConfig.Enabled {
 				go func() {
-					err := bot.Login()
+					err := bot.Run()
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -88,6 +89,23 @@ func main() {
 				go func() {
 					bot.ConsumeMessages()
 				}()
+			}
+		}),
+
+		fx.Provide(func(config *core.Config, mqs *store.RedisMQs) (*mj.MidJourneyClient, *mj.MidJourneyBot, error) {
+			if config.MidJourneyConfig.Enabled {
+				client := mj.NewMjClient(config)
+				bot, err := mj.NewMidJourneyBot(config)
+				if err != nil {
+					return nil, nil, err
+				}
+				return client, bot, nil
+			}
+			return nil, nil, nil
+		}),
+		fx.Invoke(func(config *core.Config, bot *mj.MidJourneyBot) {
+			if config.MidJourneyConfig.Enabled {
+				bot.Run()
 			}
 		}),
 

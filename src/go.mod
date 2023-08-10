@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.1.0
+	github.com/bwmarrin/discordgo v0.27.1
 	github.com/eatmoreapple/openwechat v1.2.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis/v8 v8.11.5
@@ -15,6 +16,8 @@ require (
 )
 
 require github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+
+require github.com/gorilla/websocket v1.4.2
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect

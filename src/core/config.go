@@ -15,22 +15,21 @@ type Config struct {
 	MidJourneyConfig MidJourneyConfig
 	WeChatConfig     WeChatConfig
 	RedisConfig      RedisConfig
+	CallbackToken    string
 }
 
 type MidJourneyConfig struct {
-	Enabled       bool
-	UserToken     string
-	BotToken      string
-	GuildId       string // Server ID
-	ChanelId      string // Chanel ID
-	CallbackUrl   string
-	CallbackToken string
+	Enabled     bool
+	UserToken   string
+	BotToken    string
+	GuildId     string // Server ID
+	ChanelId    string // Chanel ID
+	CallbackUrl string
 }
 
 type WeChatConfig struct {
-	Enabled       bool
-	CallbackToken string
-	CallbackUrl   string
+	Enabled     bool
+	CallbackUrl string
 }
 
 type RedisConfig struct {

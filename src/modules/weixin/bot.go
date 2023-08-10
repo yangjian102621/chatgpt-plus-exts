@@ -11,25 +11,29 @@ import (
 	"time"
 )
 
-// 微信收款机器人服务
+// 微信收款机器人
 var logger = logger2.GetLogger()
 
 type WeChatBot struct {
 	bot    *openwechat.Bot
 	config *core.WeChatConfig
 	mq     *store.RedisQueue
+	token  string
 }
 
-func NewWeChatBot(config *core.WeChatConfig, mqs *store.RedisMQs) *WeChatBot {
+func NewWeChatBot(config *core.Config, mqs *store.RedisMQs) *WeChatBot {
 	bot := openwechat.DefaultBot(openwechat.Desktop)
 	return &WeChatBot{
 		bot:    bot,
-		config: config,
+		config: &config.WeChatConfig,
+		token:  config.CallbackToken,
 		mq:     mqs.WeChat,
 	}
 }
 
-func (b *WeChatBot) Login() error {
+func (b *WeChatBot) Run() error {
+	logger.Info("Starting WeChat Bot...")
+
 	// set message handler
 	b.bot.MessageHandler = func(msg *openwechat.Message) {
 		b.messageHandler(msg)
@@ -61,7 +65,7 @@ func (b *WeChatBot) ConsumeMessages() {
 		}
 		var res vo.BizVo
 		r, err := client.R().
-			SetHeader("X-TOKEN", b.config.CallbackToken).
+			SetHeader("X-TOKEN", b.token).
 			SetBody(message).
 			SetSuccessResult(&res).
 			Post(b.config.CallbackUrl)
