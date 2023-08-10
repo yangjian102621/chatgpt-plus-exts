@@ -16,3 +16,7 @@ const (
 	InvalidArgs = "非法参数或参数解析失败"
 	HackAttempt = "Hacking attempt!!!"
 )
+
+func (b BizVo) Success() bool {
+	return b.Code == Success
+}

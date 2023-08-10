@@ -4,6 +4,7 @@ import (
 	"chatgpt-plus-exts/core"
 	"chatgpt-plus-exts/handler"
 	logger2 "chatgpt-plus-exts/logger"
+	wexin "chatgpt-plus-exts/modules/weixin"
 	"chatgpt-plus-exts/store"
 	"context"
 	"log"
@@ -46,26 +47,53 @@ func main() {
 	}()
 
 	app := fx.New(
-		// 初始化配置应用配置
+		// initialize app configs
 		fx.Provide(func() *core.Config {
-			appConfig, err := core.LoadConfig(configFile)
+			config, err := core.LoadConfig(configFile)
 			if err != nil {
 				log.Fatal(err)
 			}
-			appConfig.Path = configFile
-			return appConfig
+			config.Path = configFile
+			if config.Debug {
+				_ = core.SaveConfig(config)
+			}
+			return config
 		}),
 
-		// 初始化数据库
-		fx.Provide(store.NewLevelDB),
+		// initialize redis queue
+		fx.Provide(store.NewRedisClient),
+		fx.Provide(store.NewRedisMQs),
 
-		// 创建应用服务
+		// create app server
 		fx.Provide(func(config *core.Config) *core.AppServer {
 			return core.NewServer(config)
 		}),
 
+		// creating bots
+		fx.Provide(func(config *core.Config, mqs *store.RedisMQs) *wexin.WeChatBot {
+			if config.WeChatConfig.Enabled {
+				return wexin.NewWeChatBot(&config.WeChatConfig, mqs)
+			}
+			return nil
+		}),
+		fx.Invoke(func(config *core.Config, bot *wexin.WeChatBot) {
+			if config.WeChatConfig.Enabled {
+				go func() {
+					err := bot.Login()
+					if err != nil {
+						log.Fatal(err)
+					}
+				}()
+
+				go func() {
+					bot.ConsumeMessages()
+				}()
+			}
+		}),
+
+		// creating controller
 		fx.Provide(handler.NewMidJourneyHandler),
-		// 注册路由
+		// register router
 		fx.Invoke(func(s *core.AppServer, h *handler.MidJourneyHandler) {
 			group := s.Engine.Group("/api/mj/")
 			group.POST("image", h.Image)
@@ -78,7 +106,6 @@ func main() {
 			}
 		}),
 
-		// 注册生命周期回调函数
 		fx.Invoke(func(lifecycle fx.Lifecycle, lc *AppLifecycle) {
 			lifecycle.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
@@ -90,7 +117,7 @@ func main() {
 			})
 		}),
 	)
-	// 启动应用程序
+	// start web server
 	go func() {
 		if err := app.Start(context.Background()); err != nil {
 			log.Fatal(err)

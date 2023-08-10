@@ -13,20 +13,44 @@ type Config struct {
 	Debug            bool // enable debug mode
 	ProxyURL         string
 	MidJourneyConfig MidJourneyConfig
+	WeChatConfig     WeChatConfig
+	RedisConfig      RedisConfig
 }
 
 type MidJourneyConfig struct {
-	UserToken string
-	BotToken  string
-	GuildId   string // Server ID
-	ChanelId  string // Chanel ID
+	Enabled       bool
+	UserToken     string
+	BotToken      string
+	GuildId       string // Server ID
+	ChanelId      string // Chanel ID
+	CallbackUrl   string
+	CallbackToken string
+}
+
+type WeChatConfig struct {
+	Enabled       bool
+	CallbackToken string
+	CallbackUrl   string
+}
+
+type RedisConfig struct {
+	Address  string
+	Password string
+	Db       int
 }
 
 func NewDefaultConfig() *Config {
 	return &Config{
-		Listen:  "0.0.0.0:9001",
-		DataDir: "./data",
-		Debug:   true,
+		Listen:           "0.0.0.0:9001",
+		DataDir:          "./data",
+		Debug:            true,
+		WeChatConfig:     WeChatConfig{Enabled: true},
+		MidJourneyConfig: MidJourneyConfig{Enabled: true},
+		RedisConfig: RedisConfig{
+			Address:  "localhost:6379",
+			Password: "",
+			Db:       0,
+		},
 	}
 }
 
