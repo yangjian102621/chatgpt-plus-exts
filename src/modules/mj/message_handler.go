@@ -1,107 +1,107 @@
 package mj
 
 import (
+	"chatgpt-plus-exts/utils"
+	"regexp"
 	"strings"
 
 	discord "github.com/bwmarrin/discordgo"
 )
 
-type Scene string
+type TaskStatus string
 
 const (
-	// FirstTrigger /** 首次触发生成 */
-	FirstTrigger Scene = "FirstTrigger"
-	// GenerateEnd /** 生成图片结束 */
-	GenerateEnd Scene = "GenerateEnd"
-	// GenerateEditError /** 发送的指令midjourney生成过程中发现错误 */
-	GenerateEditError Scene = "GenerateEditError"
-	// RichText 富文本
-	RichText Scene = "RichText"
+	Start    = TaskStatus("Started")
+	Running  = TaskStatus("Running")
+	Stopped  = TaskStatus("Stopped")
+	Finished = TaskStatus("Finished")
 )
 
-func DiscordMsgCreate(s *discord.Session, m *discord.MessageCreate) {
-	// 过滤频道
+type Image struct {
+	URL      string `json:"url"`
+	ProxyURL string `json:"proxy_url"`
+	Filename string `json:"filename"`
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
+	Size     int    `json:"size"`
+}
 
-	// 过滤掉自己发送的消息
-	//if m.Author.ID == s.State.User.ID {
-	//	return
-	//}
+type CBReq struct {
+	Image   Image      `json:"image"`
+	Content string     `json:"content"`
+	Status  TaskStatus `json:"status"`
+}
 
-	/******** *********/
-	/******** *********/
-	logger.Info("content: ", m.Content)
-	logger.Info("Attachments: ", m.Attachments)
-	/******** *********/
+func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCreate) {
+	// ignore messages for other channels
+	if m.GuildID != b.config.GuildId || m.ChannelID != b.config.ChanelId {
+		return
+	}
+	// ignore messages for self
+	if m.Author.ID == s.State.User.ID {
+		return
+	}
 
 	if strings.Contains(m.Content, "(Waiting to start)") && !strings.Contains(m.Content, "Rerolling **") {
-		trigger(m.Content, FirstTrigger)
+		// parse content
+		req := CBReq{Content: extractPrompt(m.Content), Status: Start}
+		b.mq.Push(req)
 		return
 	}
 	for _, attachment := range m.Attachments {
-		if attachment.Width > 0 && attachment.Height > 0 {
-			replay(m)
-			return
+		if attachment.Width == 0 || attachment.Height == 0 || attachment.ContentType != "image/png" {
+			continue
 		}
+		var image Image
+		err := utils.CopyObject(attachment, &image)
+		if err != nil {
+			logger.Error("Error with copy object: ", err)
+			continue
+		}
+		req := CBReq{Image: image, Content: extractPrompt(m.Content), Status: Finished}
+		b.mq.Push(req)
+		break // only get one image
 	}
 }
 
-func DiscordMsgUpdate(s *discord.Session, m *discord.MessageUpdate) {
-	// 过滤频道
-	//if m.Author == nil {
-	//	return
-	//}
-
-	// 过滤掉自己发送的消息
-	//if m.Author.ID == s.State.User.ID {
-	//	return
-	//}
-
-	/******** *********/
-	logger.Info("content: ", m.Content)
-	logger.Info("Attachments: ", m.Attachments)
+func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpdate) {
+	// ignore messages for other channels
+	if m.GuildID != b.config.GuildId || m.ChannelID != b.config.ChanelId {
+		return
+	}
+	// ignore messages for self
+	if m.Author.ID == s.State.User.ID {
+		return
+	}
 
 	if strings.Contains(m.Content, "(Stopped)") {
-		trigger(m.Content, GenerateEditError)
+		req := CBReq{Content: extractPrompt(m.Content), Status: Stopped}
+		b.mq.Push(req)
 		return
 	}
-	if len(m.Embeds) > 0 {
-		send(m.Embeds)
-		return
+	for _, attachment := range m.Attachments {
+		if attachment.Width == 0 || attachment.Height == 0 || attachment.ContentType != "image/png" {
+			continue
+		}
+		var image Image
+		err := utils.CopyObject(attachment, &image)
+		if err != nil {
+			logger.Error("Error with copy object: ", err)
+			continue
+		}
+		req := CBReq{Image: image, Content: extractPrompt(m.Content), Status: Running}
+		b.mq.Push(req)
+		break // only get one image
 	}
 }
 
-type ReqCb struct {
-	Embeds  []*discord.MessageEmbed `json:"embeds,omitempty"`
-	Discord *discord.MessageCreate  `json:"discord,omitempty"`
-	Content string                  `json:"content,omitempty"`
-	Type    Scene                   `json:"type"`
-}
-
-func replay(m *discord.MessageCreate) {
-	body := ReqCb{
-		Discord: m,
-		Type:    GenerateEnd,
+// extract prompt from string
+func extractPrompt(input string) string {
+	pattern := `\*\*(.*?)\*\*`
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(input)
+	if len(matches) > 1 {
+		return matches[1]
 	}
-	callback(body)
-}
-
-func send(embeds []*discord.MessageEmbed) {
-	body := ReqCb{
-		Embeds: embeds,
-		Type:   RichText,
-	}
-	callback(body)
-}
-
-func trigger(content string, t Scene) {
-	body := ReqCb{
-		Content: content,
-		Type:    t,
-	}
-	callback(body)
-}
-
-func callback(params interface{}) {
-	logger.Infof("请求回调接口：%+v", params)
-	// TODO 发送回调请求到应用
+	return ""
 }

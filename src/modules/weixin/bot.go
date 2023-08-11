@@ -45,7 +45,7 @@ func (b *WeChatBot) Run() error {
 	reloadStorage := openwechat.NewJsonFileHotReloadStorage("storage.json")
 	err := b.bot.HotLogin(reloadStorage, true)
 	if err != nil {
-		logger.Error("login error: %v", err)
+		logger.Errorf("login error: %v", err)
 		return b.bot.Login()
 	}
 	logger.Info("微信登录成功！")
@@ -63,6 +63,12 @@ func (b *WeChatBot) ConsumeMessages() {
 			logger.Errorf("taking message with error: %v", err)
 			continue
 		}
+		b.send(client, message)
+	}
+}
+
+func (b *WeChatBot) send(client *req.Client, message Transaction) {
+	for {
 		var res vo.BizVo
 		r, err := client.R().
 			SetHeader("X-TOKEN", b.token).
@@ -71,11 +77,12 @@ func (b *WeChatBot) ConsumeMessages() {
 			Post(b.config.CallbackUrl)
 		if err != nil || r.IsErrorState() || !res.Success() {
 			logger.Errorf("消息推送失败：%v%v%v", err, r.Err, res.Message)
-			b.mq.Push(message)
+			time.Sleep(time.Second)
 			continue
 		}
 
 		logger.Infof("推送微信转账消息成功： %+v", message)
+		break
 	}
 }
 

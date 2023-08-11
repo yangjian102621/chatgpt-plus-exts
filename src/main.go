@@ -85,27 +85,32 @@ func main() {
 						log.Fatal(err)
 					}
 				}()
-
 				go func() {
 					bot.ConsumeMessages()
 				}()
 			}
 		}),
-
-		fx.Provide(func(config *core.Config, mqs *store.RedisMQs) (*mj.MidJourneyClient, *mj.MidJourneyBot, error) {
+		
+		fx.Provide(func(config *core.Config) *mj.MidJourneyClient {
 			if config.MidJourneyConfig.Enabled {
-				client := mj.NewMjClient(config)
-				bot, err := mj.NewMidJourneyBot(config)
-				if err != nil {
-					return nil, nil, err
-				}
-				return client, bot, nil
+				return mj.NewMjClient(config)
 			}
-			return nil, nil, nil
+			return nil
+		}),
+		fx.Provide(func(config *core.Config, mqs *store.RedisMQs) (*mj.MidJourneyBot, error) {
+			if config.MidJourneyConfig.Enabled {
+				return mj.NewMidJourneyBot(config, mqs)
+			}
+			return nil, nil
 		}),
 		fx.Invoke(func(config *core.Config, bot *mj.MidJourneyBot) {
 			if config.MidJourneyConfig.Enabled {
-				bot.Run()
+				go func() {
+					bot.Run()
+				}()
+				go func() {
+					bot.ConsumeMessages()
+				}()
 			}
 		}),
 
