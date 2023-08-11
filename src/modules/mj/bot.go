@@ -82,7 +82,7 @@ func (b *MidJourneyBot) send(client *req.Client, message CBReq) {
 	for {
 		var res vo.BizVo
 		r, err := client.R().
-			SetHeader("X-TOKEN", b.token).
+			SetHeader("Authorization", b.token).
 			SetBody(message).
 			SetSuccessResult(&res).
 			Post(b.config.CallbackUrl)

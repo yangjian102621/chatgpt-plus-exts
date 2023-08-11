@@ -42,26 +42,16 @@ func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCrea
 		return
 	}
 
+	logger.Infof("CREATE: %s", utils.JsonEncode(m))
+
 	if strings.Contains(m.Content, "(Waiting to start)") && !strings.Contains(m.Content, "Rerolling **") {
 		// parse content
 		req := CBReq{Content: extractPrompt(m.Content), Status: Start}
 		b.mq.Push(req)
 		return
 	}
-	for _, attachment := range m.Attachments {
-		if attachment.Width == 0 || attachment.Height == 0 || attachment.ContentType != "image/png" {
-			continue
-		}
-		var image Image
-		err := utils.CopyObject(attachment, &image)
-		if err != nil {
-			logger.Error("Error with copy object: ", err)
-			continue
-		}
-		req := CBReq{Image: image, Content: extractPrompt(m.Content), Status: Finished}
-		b.mq.Push(req)
-		break // only get one image
-	}
+
+	b.addAttachment(m.Content, m.Attachments)
 }
 
 func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpdate) {
@@ -74,22 +64,41 @@ func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpda
 		return
 	}
 
+	logger.Infof("UPDATE: %s", utils.JsonEncode(m))
+
 	if strings.Contains(m.Content, "(Stopped)") {
 		req := CBReq{Content: extractPrompt(m.Content), Status: Stopped}
 		b.mq.Push(req)
 		return
 	}
-	for _, attachment := range m.Attachments {
-		if attachment.Width == 0 || attachment.Height == 0 || attachment.ContentType != "image/png" {
+
+	b.addAttachment(m.Content, m.Attachments)
+
+}
+
+func (b *MidJourneyBot) addAttachment(content string, attachments []*discord.MessageAttachment) {
+	pattern := `\(\d+\%\)`
+	re := regexp.MustCompile(pattern)
+	match := re.FindStringSubmatch(content)
+	var status TaskStatus
+	if len(match) > 0 {
+		status = Running
+	} else {
+		status = Finished
+	}
+	for _, attachment := range attachments {
+		if attachment.Width == 0 || attachment.Height == 0 {
 			continue
 		}
-		var image Image
-		err := utils.CopyObject(attachment, &image)
-		if err != nil {
-			logger.Error("Error with copy object: ", err)
-			continue
+		image := Image{
+			URL:      attachment.URL,
+			Height:   attachment.Height,
+			ProxyURL: attachment.ProxyURL,
+			Width:    attachment.Width,
+			Size:     attachment.Size,
+			Filename: attachment.Filename,
 		}
-		req := CBReq{Image: image, Content: extractPrompt(m.Content), Status: Running}
+		req := CBReq{Image: image, Content: extractPrompt(content), Status: status}
 		b.mq.Push(req)
 		break // only get one image
 	}
