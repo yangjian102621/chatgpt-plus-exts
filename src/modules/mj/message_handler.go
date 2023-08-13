@@ -9,12 +9,16 @@ import (
 )
 
 type TaskStatus string
+type TaskType string
 
 const (
 	Start    = TaskStatus("Started")
 	Running  = TaskStatus("Running")
 	Stopped  = TaskStatus("Stopped")
 	Finished = TaskStatus("Finished")
+
+	TaskImage   = TaskType("Image")   // 创建
+	TaskUpScale = TaskType("Upscale") //放大
 )
 
 type Image struct {
@@ -28,9 +32,11 @@ type Image struct {
 }
 
 type CBReq struct {
-	MessageId string
+	Type      TaskType   `json:"type"`
+	MessageId string     `json:"message_id"`
 	Image     Image      `json:"image"`
 	Content   string     `json:"content"`
+	Prompt    string     `json:"prompt"`
 	Status    TaskStatus `json:"status"`
 }
 
@@ -48,12 +54,17 @@ func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCrea
 
 	if strings.Contains(m.Content, "(Waiting to start)") && !strings.Contains(m.Content, "Rerolling **") {
 		// parse content
-		req := CBReq{MessageId: m.ID, Content: extractPrompt(m.Content), Status: Start}
+		req := CBReq{
+			Type:      TaskImage,
+			MessageId: m.ID,
+			Prompt:    extractPrompt(m.Content),
+			Content:   m.Content,
+			Status:    Start}
 		b.mq.RPush(req)
 		return
 	}
 
-	b.addAttachment(m.ID, m.Content, m.Attachments)
+	b.addAttachment(TaskImage, m.ID, m.Content, m.Attachments)
 }
 
 func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpdate) {
@@ -69,16 +80,21 @@ func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpda
 	logger.Infof("UPDATE: %s", utils.JsonEncode(m))
 
 	if strings.Contains(m.Content, "(Stopped)") {
-		req := CBReq{MessageId: m.ID, Content: extractPrompt(m.Content), Status: Stopped}
+		req := CBReq{
+			Type:      TaskImage,
+			MessageId: m.ID,
+			Prompt:    extractPrompt(m.Content),
+			Content:   m.Content,
+			Status:    Stopped}
 		b.mq.RPush(req)
 		return
 	}
 
-	b.addAttachment(m.ID, m.Content, m.Attachments)
+	b.addAttachment(TaskImage, m.ID, m.Content, m.Attachments)
 
 }
 
-func (b *MidJourneyBot) addAttachment(messageId string, content string, attachments []*discord.MessageAttachment) {
+func (b *MidJourneyBot) addAttachment(t TaskType, messageId string, content string, attachments []*discord.MessageAttachment) {
 	pattern := `\(\d+\%\)`
 	re := regexp.MustCompile(pattern)
 	match := re.FindStringSubmatch(content)
@@ -102,9 +118,11 @@ func (b *MidJourneyBot) addAttachment(messageId string, content string, attachme
 			Hash:     extractHashFromFilename(attachment.Filename),
 		}
 		req := CBReq{
+			Type:      t,
 			MessageId: messageId,
 			Image:     image,
-			Content:   extractPrompt(content),
+			Prompt:    extractPrompt(content),
+			Content:   content,
 			Status:    status,
 		}
 		b.mq.RPush(req)
