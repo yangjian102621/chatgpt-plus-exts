@@ -58,17 +58,11 @@ func (b *WeChatBot) ConsumeMessages() {
 	client := req.C().SetTimeout(10 * time.Second)
 	for {
 		var message Transaction
-		err := b.mq.Take(&message)
+		err := b.mq.LPop(&message)
 		if err != nil {
 			logger.Errorf("taking message with error: %v", err)
 			continue
 		}
-		b.send(client, message)
-	}
-}
-
-func (b *WeChatBot) send(client *req.Client, message Transaction) {
-	for {
 		var res vo.BizVo
 		r, err := client.R().
 			SetHeader("Authorization", b.token).
@@ -77,11 +71,18 @@ func (b *WeChatBot) send(client *req.Client, message Transaction) {
 			Post(b.config.CallbackUrl)
 		if err != nil || r.IsErrorState() || !res.Success() {
 			logger.Errorf("消息推送失败：%v%v%v", err, r.Err, res.Message)
+			b.mq.LPush(message)
 			time.Sleep(time.Second)
 			continue
 		}
 
 		logger.Infof("推送微信转账消息成功： %+v", message)
+	}
+}
+
+func (b *WeChatBot) send(client *req.Client, message Transaction) {
+	for {
+
 		break
 	}
 }
@@ -103,7 +104,7 @@ func (b *WeChatBot) messageHandler(msg *openwechat.Message) {
 			transaction := extractTransaction(message)
 			logger.Infof("解析到收款信息：%+v", transaction)
 			// push transaction to message queue
-			b.mq.Push(transaction)
+			b.mq.RPush(transaction)
 		}
 	}
 }

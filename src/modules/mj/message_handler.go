@@ -27,9 +27,11 @@ type Image struct {
 }
 
 type CBReq struct {
-	Image   Image      `json:"image"`
-	Content string     `json:"content"`
-	Status  TaskStatus `json:"status"`
+	MessageId   string
+	MessageHash string
+	Image       Image      `json:"image"`
+	Content     string     `json:"content"`
+	Status      TaskStatus `json:"status"`
 }
 
 func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCreate) {
@@ -47,7 +49,7 @@ func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCrea
 	if strings.Contains(m.Content, "(Waiting to start)") && !strings.Contains(m.Content, "Rerolling **") {
 		// parse content
 		req := CBReq{Content: extractPrompt(m.Content), Status: Start}
-		b.mq.Push(req)
+		b.mq.RPush(req)
 		return
 	}
 
@@ -68,7 +70,7 @@ func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpda
 
 	if strings.Contains(m.Content, "(Stopped)") {
 		req := CBReq{Content: extractPrompt(m.Content), Status: Stopped}
-		b.mq.Push(req)
+		b.mq.RPush(req)
 		return
 	}
 
@@ -99,7 +101,7 @@ func (b *MidJourneyBot) addAttachment(content string, attachments []*discord.Mes
 			Filename: attachment.Filename,
 		}
 		req := CBReq{Image: image, Content: extractPrompt(content), Status: status}
-		b.mq.Push(req)
+		b.mq.RPush(req)
 		break // only get one image
 	}
 }

@@ -69,17 +69,11 @@ func (b *MidJourneyBot) ConsumeMessages() {
 	client := req.C().SetTimeout(10 * time.Second)
 	for {
 		var message CBReq
-		err := b.mq.Take(&message)
+		err := b.mq.LPop(&message)
 		if err != nil {
 			logger.Errorf("taking message with error: %v", err)
 			continue
 		}
-		b.send(client, message)
-	}
-}
-
-func (b *MidJourneyBot) send(client *req.Client, message CBReq) {
-	for {
 		var res vo.BizVo
 		r, err := client.R().
 			SetHeader("Authorization", b.token).
@@ -88,9 +82,9 @@ func (b *MidJourneyBot) send(client *req.Client, message CBReq) {
 			Post(b.config.CallbackUrl)
 		if err != nil || r.IsErrorState() || !res.Success() {
 			logger.Errorf("消息推送失败：%v%v%v", err, r.Err, res.Message)
+			b.mq.LPush(message)
 			time.Sleep(time.Second)
 			continue
 		}
-		break
 	}
 }
