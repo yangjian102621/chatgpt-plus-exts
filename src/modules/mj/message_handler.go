@@ -24,14 +24,14 @@ type Image struct {
 	Width    int    `json:"width"`
 	Height   int    `json:"height"`
 	Size     int    `json:"size"`
+	Hash     string `json:"hash"`
 }
 
 type CBReq struct {
-	MessageId   string
-	MessageHash string
-	Image       Image      `json:"image"`
-	Content     string     `json:"content"`
-	Status      TaskStatus `json:"status"`
+	MessageId string
+	Image     Image      `json:"image"`
+	Content   string     `json:"content"`
+	Status    TaskStatus `json:"status"`
 }
 
 func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCreate) {
@@ -48,12 +48,12 @@ func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCrea
 
 	if strings.Contains(m.Content, "(Waiting to start)") && !strings.Contains(m.Content, "Rerolling **") {
 		// parse content
-		req := CBReq{Content: extractPrompt(m.Content), Status: Start}
+		req := CBReq{MessageId: m.ID, Content: extractPrompt(m.Content), Status: Start}
 		b.mq.RPush(req)
 		return
 	}
 
-	b.addAttachment(m.Content, m.Attachments)
+	b.addAttachment(m.ID, m.Content, m.Attachments)
 }
 
 func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpdate) {
@@ -69,16 +69,16 @@ func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpda
 	logger.Infof("UPDATE: %s", utils.JsonEncode(m))
 
 	if strings.Contains(m.Content, "(Stopped)") {
-		req := CBReq{Content: extractPrompt(m.Content), Status: Stopped}
+		req := CBReq{MessageId: m.ID, Content: extractPrompt(m.Content), Status: Stopped}
 		b.mq.RPush(req)
 		return
 	}
 
-	b.addAttachment(m.Content, m.Attachments)
+	b.addAttachment(m.ID, m.Content, m.Attachments)
 
 }
 
-func (b *MidJourneyBot) addAttachment(content string, attachments []*discord.MessageAttachment) {
+func (b *MidJourneyBot) addAttachment(messageId string, content string, attachments []*discord.MessageAttachment) {
 	pattern := `\(\d+\%\)`
 	re := regexp.MustCompile(pattern)
 	match := re.FindStringSubmatch(content)
@@ -99,8 +99,14 @@ func (b *MidJourneyBot) addAttachment(content string, attachments []*discord.Mes
 			Width:    attachment.Width,
 			Size:     attachment.Size,
 			Filename: attachment.Filename,
+			Hash:     extractHashFromFilename(attachment.Filename),
 		}
-		req := CBReq{Image: image, Content: extractPrompt(content), Status: status}
+		req := CBReq{
+			MessageId: messageId,
+			Image:     image,
+			Content:   extractPrompt(content),
+			Status:    status,
+		}
 		b.mq.RPush(req)
 		break // only get one image
 	}
@@ -113,6 +119,14 @@ func extractPrompt(input string) string {
 	matches := re.FindStringSubmatch(input)
 	if len(matches) > 1 {
 		return matches[1]
+	}
+	return ""
+}
+
+func extractHashFromFilename(filename string) string {
+	index := strings.LastIndex(filename, "_")
+	if index != -1 {
+		return filename[index+1 : len(filename)-4]
 	}
 	return ""
 }
