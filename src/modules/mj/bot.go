@@ -61,6 +61,7 @@ func (b *MidJourneyBot) Run() {
 		logger.Error("Error opening Discord connection:", err)
 		return
 	}
+	logger.Info("Starting MidJourney Bot successfully!")
 }
 
 // ConsumeMessages consume messages
@@ -81,7 +82,7 @@ func (b *MidJourneyBot) ConsumeMessages() {
 			SetSuccessResult(&res).
 			Post(b.config.CallbackUrl)
 		if err != nil || r.IsErrorState() || !res.Success() {
-			logger.Errorf("消息推送失败：%v%v%v", err, r.Err, res.Message)
+			logger.Errorf("消息推送失败，Network Err: %v, Http Err: %v, Resp Err: %v", err, r.Err, res.Message)
 			b.mq.LPush(message)
 			time.Sleep(time.Second)
 			continue

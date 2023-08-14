@@ -136,12 +136,16 @@ func extractPrompt(input string) string {
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(input)
 	if len(matches) > 1 {
-		return matches[1]
+		return strings.TrimSpace(matches[1])
 	}
 	return ""
 }
 
 func extractHashFromFilename(filename string) string {
+	if !strings.HasSuffix(filename, ".png") {
+		return ""
+	}
+	
 	index := strings.LastIndex(filename, "_")
 	if index != -1 {
 		return filename[index+1 : len(filename)-4]
