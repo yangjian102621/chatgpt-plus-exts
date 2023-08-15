@@ -11,7 +11,7 @@ linux:
 .PHONY: linux
 
 darwin:
-	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o bin/$(NAME)-amd64-darwin main.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/$(NAME)-amd64-darwin main.go
 .PHONY: darwin
 
 clean:
