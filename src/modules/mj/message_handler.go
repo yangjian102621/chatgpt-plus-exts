@@ -9,16 +9,12 @@ import (
 )
 
 type TaskStatus string
-type TaskType string
 
 const (
 	Start    = TaskStatus("Started")
 	Running  = TaskStatus("Running")
 	Stopped  = TaskStatus("Stopped")
 	Finished = TaskStatus("Finished")
-
-	TaskImage   = TaskType("Image")   // 创建
-	TaskUpScale = TaskType("Upscale") //放大
 )
 
 type Image struct {
@@ -32,12 +28,12 @@ type Image struct {
 }
 
 type CBReq struct {
-	Type      TaskType   `json:"type"`
-	MessageId string     `json:"message_id"`
-	Image     Image      `json:"image"`
-	Content   string     `json:"content"`
-	Prompt    string     `json:"prompt"`
-	Status    TaskStatus `json:"status"`
+	MessageId   string     `json:"message_id"`
+	ReferenceId string     `json:"reference_id"`
+	Image       Image      `json:"image"`
+	Content     string     `json:"content"`
+	Prompt      string     `json:"prompt"`
+	Status      TaskStatus `json:"status"`
 }
 
 func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCreate) {
@@ -51,20 +47,23 @@ func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCrea
 	}
 
 	logger.Infof("CREATE: %s", utils.JsonEncode(m))
-
+	var referenceId = ""
+	if m.ReferencedMessage != nil {
+		referenceId = m.ReferencedMessage.ID
+	}
 	if strings.Contains(m.Content, "(Waiting to start)") && !strings.Contains(m.Content, "Rerolling **") {
 		// parse content
 		req := CBReq{
-			Type:      TaskImage,
-			MessageId: m.ID,
-			Prompt:    extractPrompt(m.Content),
-			Content:   m.Content,
-			Status:    Start}
+			MessageId:   m.ID,
+			ReferenceId: referenceId,
+			Prompt:      extractPrompt(m.Content),
+			Content:     m.Content,
+			Status:      Start}
 		b.mq.RPush(req)
 		return
 	}
 
-	b.addAttachment(TaskImage, m.ID, m.Content, m.Attachments)
+	b.addAttachment(m.ID, referenceId, m.Content, m.Attachments)
 }
 
 func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpdate) {
@@ -79,22 +78,26 @@ func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpda
 
 	logger.Infof("UPDATE: %s", utils.JsonEncode(m))
 
+	var referenceId = ""
+	if m.ReferencedMessage != nil {
+		referenceId = m.ReferencedMessage.ID
+	}
 	if strings.Contains(m.Content, "(Stopped)") {
 		req := CBReq{
-			Type:      TaskImage,
-			MessageId: m.ID,
-			Prompt:    extractPrompt(m.Content),
-			Content:   m.Content,
-			Status:    Stopped}
+			MessageId:   m.ID,
+			ReferenceId: referenceId,
+			Prompt:      extractPrompt(m.Content),
+			Content:     m.Content,
+			Status:      Stopped}
 		b.mq.RPush(req)
 		return
 	}
 
-	b.addAttachment(TaskImage, m.ID, m.Content, m.Attachments)
+	b.addAttachment(m.ID, referenceId, m.Content, m.Attachments)
 
 }
 
-func (b *MidJourneyBot) addAttachment(t TaskType, messageId string, content string, attachments []*discord.MessageAttachment) {
+func (b *MidJourneyBot) addAttachment(messageId string, referenceId string, content string, attachments []*discord.MessageAttachment) {
 	pattern := `\(\d+\%\)`
 	re := regexp.MustCompile(pattern)
 	match := re.FindStringSubmatch(content)
@@ -118,12 +121,12 @@ func (b *MidJourneyBot) addAttachment(t TaskType, messageId string, content stri
 			Hash:     extractHashFromFilename(attachment.Filename),
 		}
 		req := CBReq{
-			Type:      t,
-			MessageId: messageId,
-			Image:     image,
-			Prompt:    extractPrompt(content),
-			Content:   content,
-			Status:    status,
+			MessageId:   messageId,
+			ReferenceId: referenceId,
+			Image:       image,
+			Prompt:      extractPrompt(content),
+			Content:     content,
+			Status:      status,
 		}
 		b.mq.RPush(req)
 		break // only get one image
@@ -145,7 +148,7 @@ func extractHashFromFilename(filename string) string {
 	if !strings.HasSuffix(filename, ".png") {
 		return ""
 	}
-	
+
 	index := strings.LastIndex(filename, "_")
 	if index != -1 {
 		return filename[index+1 : len(filename)-4]

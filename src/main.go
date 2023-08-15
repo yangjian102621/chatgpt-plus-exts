@@ -90,7 +90,7 @@ func main() {
 				}()
 			}
 		}),
-		
+
 		fx.Provide(func(config *core.Config) *mj.MidJourneyClient {
 			if config.MidJourneyConfig.Enabled {
 				return mj.NewMjClient(config)
@@ -120,6 +120,7 @@ func main() {
 		fx.Invoke(func(s *core.AppServer, h *handler.MidJourneyHandler) {
 			group := s.Engine.Group("/api/mj/")
 			group.POST("image", h.Image)
+			group.POST("upscale", h.Upscale)
 		}),
 
 		fx.Invoke(func(s *core.AppServer) {
