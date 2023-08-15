@@ -69,3 +69,30 @@ func (h *MidJourneyHandler) Upscale(c *gin.Context) {
 
 	resp.SUCCESS(c)
 }
+
+func (h *MidJourneyHandler) Variation(c *gin.Context) {
+	var data struct {
+		Index       int32  `json:"index"`
+		MessageId   string `json:"message_id"`
+		MessageHash string `json:"message_hash"`
+	}
+	if err := c.ShouldBindJSON(&data); err != nil ||
+		data.MessageId == "" || data.MessageHash == "" {
+		resp.ERROR(c, vo.InvalidArgs)
+		return
+	}
+
+	logger.Infof("收到 Variation 任务：%+v", data)
+	if err := h.client.Variation(&mj.VariationRequest{
+		GuildID:     h.App.Config.MidJourneyConfig.GuildId,
+		ChannelID:   h.App.Config.MidJourneyConfig.ChanelId,
+		Index:       data.Index,
+		MessageHash: data.MessageHash,
+		MessageID:   data.MessageId,
+	}); err != nil {
+		resp.ERROR(c, err.Error())
+		return
+	}
+
+	resp.SUCCESS(c)
+}

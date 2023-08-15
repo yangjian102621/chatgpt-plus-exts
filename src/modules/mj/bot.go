@@ -51,7 +51,7 @@ func NewMidJourneyBot(config *core.Config, mqs *store.RedisMQs) (*MidJourneyBot,
 }
 
 func (b *MidJourneyBot) Run() {
-	b.bot.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentMessageContent
+	b.bot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged | discordgo.IntentsGuildMessages | discordgo.IntentMessageContent
 	b.bot.AddHandler(b.messageCreate)
 	b.bot.AddHandler(b.messageUpdate)
 

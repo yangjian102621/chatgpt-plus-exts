@@ -121,6 +121,7 @@ func main() {
 			group := s.Engine.Group("/api/mj/")
 			group.POST("image", h.Image)
 			group.POST("upscale", h.Upscale)
+			group.POST("variation", h.Variation)
 		}),
 
 		fx.Invoke(func(s *core.AppServer) {
