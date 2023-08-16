@@ -82,7 +82,7 @@ func main() {
 				go func() {
 					err := bot.Run()
 					if err != nil {
-						log.Fatal(err)
+						logger.Error("微信登录失败：", err)
 					}
 				}()
 				go func() {

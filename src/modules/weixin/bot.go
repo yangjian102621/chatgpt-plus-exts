@@ -41,13 +41,11 @@ func (b *WeChatBot) Run() error {
 	// scan code login callback
 	b.bot.UUIDCallback = b.qrCodeCallBack
 
-	// create hot login storage
-	reloadStorage := openwechat.NewJsonFileHotReloadStorage("storage.json")
-	err := b.bot.HotLogin(reloadStorage, true)
+	err := b.bot.Login()
 	if err != nil {
-		logger.Errorf("login error: %v", err)
-		return b.bot.Login()
+		return err
 	}
+
 	logger.Info("微信登录成功！")
 	return nil
 }
@@ -63,6 +61,10 @@ func (b *WeChatBot) ConsumeMessages() {
 			logger.Errorf("taking message with error: %v", err)
 			continue
 		}
+		if message.Amount <= 0 {
+			continue
+		}
+
 		var res vo.BizVo
 		r, err := client.R().
 			SetHeader("Authorization", b.token).

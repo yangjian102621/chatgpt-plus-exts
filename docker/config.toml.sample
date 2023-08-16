@@ -1,0 +1,22 @@
+Listen = "0.0.0.0:9001"
+DataDir = "./data"
+Debug = true
+ProxyURL = "http://172.22.11.47:7777"
+CallbackToken = "e8hgcjp4fsn6kq1pbe6hkgkvf89svvbi"
+
+[MidJourneyConfig]
+  Enabled = true
+  UserToken = "YOUR_USER_TOTEN"
+  BotToken = "YOUR_BOT_TOKEN"
+  GuildId = "YOUR_GUILD_ID"
+  ChanelId = "YOUR_CHANEL_ID"
+  CallbackUrl = "http://localhost:5678/api/mj/notify"
+
+[WeChatConfig]
+  Enabled = false
+  CallbackUrl = "http://localhost:5678/api/reward/notify"
+
+[RedisConfig]
+  Address = "localhost:6379"
+  Password = ""
+  Db = 0

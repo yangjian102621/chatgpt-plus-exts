@@ -1,7 +1,7 @@
 version: '3'
 services:
   chatgpt-plus-exts:
-    image: registry.cn-hangzhou.aliyuncs.com/geekmaster/chatgpt-plus-exts:v1.0.1
+    image: registry.cn-hangzhou.aliyuncs.com/geekmaster/chatgpt-plus-exts:v3.0.7
     container_name: chatgpt-plus-exts
     restart: always
     environment:
@@ -12,3 +12,4 @@ services:
     volumes:
       - ./data:/var/www/app/data
       - ./config.toml:/var/www/app/config.toml
+      - ./logs/api:/var/www/app/logs

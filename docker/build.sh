@@ -6,11 +6,8 @@ if [ -z $version ];then
 	exit 1
 fi
 
-cd ../api
+cd ../src 
 make clean linux
-
-cd ../web
-npm run build
 
 cd ../docker
 
