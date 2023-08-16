@@ -13,7 +13,6 @@ cd src
 cp config.toml.sample config.toml
 ``` 
 修改其中的几处配置，如果你不知道如何获取 Discord 用户 Token 和 Bot Token 请查参考 [Midjourney｜如何集成到自己的平台](https://zhuanlan.zhihu.com/p/631079476)。
-
 ```toml
 Listen = "0.0.0.0:9001"
 DataDir = "./data"
@@ -24,7 +23,7 @@ CallbackToken = "e8hgcjp4fsn6kq1pbe6hkgkvf89svvbi" # ChatPlus 项目回调授权
 [MidJourneyConfig]
   Enabled = true # 是否启动 MidJourney 机器人
   UserToken = "YOUR_USER_TOTEN" # 用户登录 Token
-  BotToken = "YOUR_BOT_TOKEN" # 机器人登录 Token
+  BotToken = "YOUR_BOT_TOKEN" # 机器人登录 Token，经测试有的账号这里也填 UserToken 也可以正常运行，如果启动授权报错请单独设置 BotToken
   GuildId = "YOUR_GUILD_ID" # discord 服务器 ID
   ChanelId = "YOUR_CHANEL_ID" # discord 频道 ID
   CallbackUrl = "http://localhost:5678/api/mj/notify" # MidJourney 绘画消息推送接口
