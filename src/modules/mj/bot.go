@@ -68,7 +68,7 @@ func (b *MidJourneyBot) Run() error {
 // ConsumeMessages consume messages
 func (b *MidJourneyBot) ConsumeMessages() {
 	logger.Info("Starting consume MidJourney messages...")
-	client := req.C().SetTimeout(10 * time.Second)
+	client := req.C().SetTimeout(60 * time.Second)
 	for {
 		var message CBReq
 		err := b.mq.LPop(&message)
