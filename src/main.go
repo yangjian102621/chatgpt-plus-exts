@@ -83,6 +83,7 @@ func main() {
 					err := bot.Run()
 					if err != nil {
 						logger.Error("微信登录失败：", err)
+						panic(err)
 					}
 				}()
 				go func() {
@@ -106,7 +107,10 @@ func main() {
 		fx.Invoke(func(config *core.Config, bot *mj.MidJourneyBot) {
 			if config.MidJourneyConfig.Enabled {
 				go func() {
-					bot.Run()
+					err := bot.Run()
+					if err != nil {
+						panic(err)
+					}
 				}()
 				go func() {
 					bot.ConsumeMessages()

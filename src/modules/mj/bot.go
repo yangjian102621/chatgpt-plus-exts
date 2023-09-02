@@ -50,7 +50,7 @@ func NewMidJourneyBot(config *core.Config, mqs *store.RedisMQs) (*MidJourneyBot,
 	}, nil
 }
 
-func (b *MidJourneyBot) Run() {
+func (b *MidJourneyBot) Run() error {
 	b.bot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged | discordgo.IntentsGuildMessages | discordgo.IntentMessageContent
 	b.bot.AddHandler(b.messageCreate)
 	b.bot.AddHandler(b.messageUpdate)
@@ -59,9 +59,10 @@ func (b *MidJourneyBot) Run() {
 	err := b.bot.Open()
 	if err != nil {
 		logger.Error("Error opening Discord connection:", err)
-		return
+		return err
 	}
 	logger.Info("Starting MidJourney Bot successfully!")
+	return nil
 }
 
 // ConsumeMessages consume messages
