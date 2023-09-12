@@ -34,6 +34,7 @@ type CBReq struct {
 	Content     string     `json:"content"`
 	Prompt      string     `json:"prompt"`
 	Status      TaskStatus `json:"status"`
+	Progress    int        `json:"progress"`
 }
 
 func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCreate) {
@@ -58,6 +59,7 @@ func (b *MidJourneyBot) messageCreate(s *discord.Session, m *discord.MessageCrea
 			ReferenceId: referenceId,
 			Prompt:      extractPrompt(m.Content),
 			Content:     m.Content,
+			Progress:    0,
 			Status:      Start}
 		b.mq.RPush(req)
 		return
@@ -88,6 +90,7 @@ func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpda
 			ReferenceId: referenceId,
 			Prompt:      extractPrompt(m.Content),
 			Content:     m.Content,
+			Progress:    extractProgress(m.Content),
 			Status:      Stopped}
 		b.mq.RPush(req)
 		return
@@ -98,14 +101,12 @@ func (b *MidJourneyBot) messageUpdate(s *discord.Session, m *discord.MessageUpda
 }
 
 func (b *MidJourneyBot) addAttachment(messageId string, referenceId string, content string, attachments []*discord.MessageAttachment) {
-	pattern := `\(\d+\%\)`
-	re := regexp.MustCompile(pattern)
-	match := re.FindStringSubmatch(content)
+	progress := extractProgress(content)
 	var status TaskStatus
-	if len(match) > 0 {
-		status = Running
-	} else {
+	if progress == 100 {
 		status = Finished
+	} else {
+		status = Running
 	}
 	for _, attachment := range attachments {
 		if attachment.Width == 0 || attachment.Height == 0 {
@@ -126,6 +127,7 @@ func (b *MidJourneyBot) addAttachment(messageId string, referenceId string, cont
 			Image:       image,
 			Prompt:      extractPrompt(content),
 			Content:     content,
+			Progress:    progress,
 			Status:      status,
 		}
 		b.mq.RPush(req)
@@ -142,6 +144,16 @@ func extractPrompt(input string) string {
 		return strings.TrimSpace(matches[1])
 	}
 	return ""
+}
+
+func extractProgress(input string) int {
+	pattern := `\((\d+)\%\)`
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(input)
+	if len(matches) > 1 {
+		return utils.IntValue(matches[1], 0)
+	}
+	return 100
 }
 
 func extractHashFromFilename(filename string) string {

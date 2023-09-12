@@ -19,12 +19,12 @@ func (h *BaseHandler) GetTrim(c *gin.Context, key string) string {
 	return strings.TrimSpace(c.Query(key))
 }
 
-func (h *BaseHandler) PostInt(c *gin.Context, key string, defaultValue int) int {
-	return utils.IntValue(c.PostForm(key), defaultValue)
+func (h *BaseHandler) PostInt(c *gin.Context, key string) int {
+	return utils.IntValue(c.PostForm(key), 0)
 }
 
-func (h *BaseHandler) GetInt(c *gin.Context, key string, defaultValue int) int {
-	return utils.IntValue(c.Query(key), defaultValue)
+func (h *BaseHandler) GetInt(c *gin.Context, key string) int {
+	return utils.IntValue(c.Query(key), 0)
 }
 
 func (h *BaseHandler) GetFloat(c *gin.Context, key string) float64 {

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"strings"
+	"fmt"
+	"regexp"
 )
 
 func main() {
-	input := "lal603743923_A_Chinese_girl_walks_barefoot_on_the_beach_wearing_04223eb8-e11d-4c41-8b12-e15639729299.png"
-	index := strings.LastIndex(input, "_")
-	if index != -1 {
-		hash := input[index+1 : len(input)-4]
-		println(hash)
-	}
+	input := "**Ma painting of a young girl in green sitting at a pond, in the style of Liu ye, traditional animation, cinematic lighting, book sculptures --ar 16:9 --s 300 --v 5.2** - \u003c@1129939476223893514\u003e (93%) (fast)"
+	pattern := `\((\d+)\%\)`
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(input)
+	fmt.Println(matches[1])
 }
