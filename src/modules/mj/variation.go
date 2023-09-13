@@ -2,6 +2,7 @@ package mj
 
 import (
 	"fmt"
+	"time"
 )
 
 type VariationRequest struct {
@@ -12,6 +13,7 @@ type VariationRequest struct {
 	MessageHash string `json:"message_hash"`
 }
 
+// Variation  以指定的图片的视角进行变换再创作，注意需要在对应的频道中关闭 Remix 变换，否则 Variation 指令将不会生效
 func (c *MidJourneyClient) Variation(variationReq *VariationRequest) error {
 	flags := 0
 	interactionsReq := &InteractionsRequest{
@@ -26,16 +28,18 @@ func (c *MidJourneyClient) Variation(variationReq *VariationRequest) error {
 			"component_type": 2,
 			"custom_id":      fmt.Sprintf("MJ::JOB::variation::%d::%s", variationReq.Index, variationReq.MessageHash),
 		},
+		Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
 	}
 
 	url := "https://discord.com/api/v9/interactions"
+	var res InteractionsResult
 	r, err := c.client.R().SetHeader("Authorization", c.config.UserToken).
 		SetHeader("Content-Type", "application/json").
 		SetBody(interactionsReq).
+		SetErrorResult(&res).
 		Post(url)
-
 	if err != nil || r.IsErrorState() {
-		return fmt.Errorf("error with http request: %w%v", err, r.Err)
+		return fmt.Errorf("error with http request: %v%v%v", err, r.Err, res.Message)
 	}
 
 	return nil

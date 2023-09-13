@@ -14,4 +14,11 @@ type InteractionsRequest struct {
 	ChannelID     string         `json:"channel_id"`
 	SessionID     string         `json:"session_id"`
 	Data          map[string]any `json:"data"`
+	Nonce         string         `json:"nonce,omitempty"`
+}
+
+type InteractionsResult struct {
+	Code    int `json:"code"`
+	Message string
+	Error   map[string]any
 }

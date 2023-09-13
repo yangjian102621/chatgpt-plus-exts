@@ -2,6 +2,7 @@ package mj
 
 import (
 	"fmt"
+	"time"
 )
 
 type UpscaleRequest struct {
@@ -26,16 +27,18 @@ func (c *MidJourneyClient) Upscale(upscaleReq *UpscaleRequest) error {
 			"component_type": 2,
 			"custom_id":      fmt.Sprintf("MJ::JOB::upsample::%d::%s", upscaleReq.Index, upscaleReq.MessageHash),
 		},
+		Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
 	}
 
 	url := "https://discord.com/api/v9/interactions"
+	var res InteractionsResult
 	r, err := c.client.R().SetHeader("Authorization", c.config.UserToken).
 		SetHeader("Content-Type", "application/json").
 		SetBody(interactionsReq).
+		SetErrorResult(&res).
 		Post(url)
-
 	if err != nil || r.IsErrorState() {
-		return fmt.Errorf("error with http request: %w%v", err, r.Err)
+		return fmt.Errorf("error with http request: %v%v%v", err, r.Err, res.Message)
 	}
 
 	return nil
