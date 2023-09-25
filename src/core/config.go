@@ -32,6 +32,13 @@ type WeChatConfig struct {
 	CallbackUrl string
 }
 
+// SDConfig stable diffusion API config
+type SDConfig struct {
+	Enabled bool
+	ApiURL  string
+	ApiKey  string
+}
+
 type RedisConfig struct {
 	Address  string
 	Password string
