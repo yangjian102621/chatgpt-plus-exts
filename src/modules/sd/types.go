@@ -5,21 +5,21 @@ import logger2 "chatgpt-plus-exts/logger"
 var logger = logger2.GetLogger()
 
 type Txt2ImgReq struct {
-	TaskId         int `json:"task_id"`
-	Prompt         int `json:"prompt"`
-	NegativePrompt int `json:"negative_prompt"`
-	Steps          int `json:"steps"`
-	Sampler        int `json:"sampler"`
-	FaceFix        int `json:"face_fix"`
-	CfgScale       int `json:"cfg_scale"`
-	Seed           int `json:"seed"`
-	Height         int `json:"height"`
-	Width          int `json:"width"`
-	HdFix          int `json:"hd_fix"`
-	HdRedrawRate   int `json:"hd_redraw_rate"`
-	HdScale        int `json:"hd_scale"`
-	HdScaleAlg     int `json:"hd_scale_alg"`
-	HdSampleNum    int `json:"hd_sample_num"`
+	TaskId         string  `json:"task_id"`
+	Prompt         string  `json:"prompt"`
+	NegativePrompt string  `json:"negative_prompt"`
+	Steps          int     `json:"steps"`
+	Sampler        string  `json:"sampler"`
+	FaceFix        bool    `json:"face_fix"`
+	CfgScale       float32 `json:"cfg_scale"`
+	Seed           int64   `json:"seed"`
+	Height         int     `json:"height"`
+	Width          int     `json:"width"`
+	HdFix          bool    `json:"hd_fix"`
+	HdRedrawRate   float32 `json:"hd_redraw_rate"`
+	HdScale        int     `json:"hd_scale"`
+	HdScaleAlg     string  `json:"hd_scale_alg"`
+	HdSampleNum    int     `json:"hd_sample_num"`
 }
 
 type TaskInfo struct {
@@ -34,7 +34,7 @@ type CBReq struct {
 	TaskId    string
 	ImageName string
 	ImageData string
-	Progress  float64
+	Progress  int
 	Seed      string
 	Success   bool
 	Message   string
@@ -58,7 +58,7 @@ var ParamKeys = map[string]int{
 	"hd_sample_num":   23, // 高清修复采样次数
 }
 
-const Text2ImgParams = `[
+const Text2ImgParamTemplate = `[
 "",
 "",
 "",

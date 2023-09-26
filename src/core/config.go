@@ -14,6 +14,7 @@ type Config struct {
 	ProxyURL         string
 	MidJourneyConfig MidJourneyConfig
 	WeChatConfig     WeChatConfig
+	SdConfig         SdConfig
 	RedisConfig      RedisConfig
 	CallbackToken    string
 }
@@ -32,8 +33,8 @@ type WeChatConfig struct {
 	CallbackUrl string
 }
 
-// SDConfig stable diffusion API config
-type SDConfig struct {
+// SdConfig stable diffusion API config
+type SdConfig struct {
 	Enabled bool
 	ApiURL  string
 	ApiKey  string

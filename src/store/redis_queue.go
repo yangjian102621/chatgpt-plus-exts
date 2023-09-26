@@ -13,14 +13,16 @@ type RedisQueue struct {
 }
 
 type RedisMQs struct {
-	WeChat     *RedisQueue
-	MidJourney *RedisQueue
+	WeChat          *RedisQueue
+	MidJourney      *RedisQueue
+	StableDiffusion *RedisQueue
 }
 
 func NewRedisMQs(client *redis.Client) *RedisMQs {
 	return &RedisMQs{
-		WeChat:     &RedisQueue{name: "wechat_message_queue", client: client, ctx: context.Background()},
-		MidJourney: &RedisQueue{name: "midjourney_message_queue", client: client, ctx: context.Background()},
+		WeChat:          &RedisQueue{name: "wechat_message_queue", client: client, ctx: context.Background()},
+		MidJourney:      &RedisQueue{name: "midjourney_message_queue", client: client, ctx: context.Background()},
+		StableDiffusion: &RedisQueue{name: "stable_diffusion_message_queue", client: client, ctx: context.Background()},
 	}
 }
 

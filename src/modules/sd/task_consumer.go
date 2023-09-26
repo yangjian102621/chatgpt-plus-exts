@@ -12,7 +12,14 @@ import (
 
 type TaskConsumer struct {
 	mq     *store.RedisQueue
-	config *core.SDConfig
+	config *core.SdConfig
+}
+
+func NewTaskConsumer(config *core.Config, mqs *store.RedisMQs) *TaskConsumer {
+	return &TaskConsumer{
+		mq:     mqs.StableDiffusion,
+		config: &config.SdConfig,
+	}
 }
 
 func (tc *TaskConsumer) Run() {
@@ -50,7 +57,7 @@ func (tc *TaskConsumer) consumeTask(taskInfo TaskInfo, client *req.Client) {
 		var cbReq = CBReq{TaskId: taskInfo.TaskId}
 		response, err := client.R().SetBody(body).SetSuccessResult(&res).Post(tc.config.ApiURL + "/run/predict")
 		if err != nil {
-			cbReq.Message = err.Error()
+			cbReq.Message = "error with send request: " + err.Error()
 			cbReq.Success = false
 			result <- cbReq
 			return
@@ -58,7 +65,7 @@ func (tc *TaskConsumer) consumeTask(taskInfo TaskInfo, client *req.Client) {
 
 		if response.IsErrorState() {
 			bytes, _ := io.ReadAll(response.Body)
-			cbReq.Message = string(bytes)
+			cbReq.Message = "error http status code: " + string(bytes)
 			cbReq.Success = false
 			result <- cbReq
 			return
@@ -71,7 +78,7 @@ func (tc *TaskConsumer) consumeTask(taskInfo TaskInfo, client *req.Client) {
 		}
 		err = utils.ForceCovert(res.Data[0], &images)
 		if err != nil {
-			cbReq.Message = err.Error()
+			cbReq.Message = "error with decode image:" + err.Error()
 			cbReq.Success = false
 			result <- cbReq
 			return
@@ -101,8 +108,9 @@ func (tc *TaskConsumer) consumeTask(taskInfo TaskInfo, client *req.Client) {
 	for {
 		select {
 		case value := <-result:
-			logger.Info(value)
-			// TODO: 回调 API 推送失败消息
+			if value.Success {
+				logger.Infof("%s/file=%s", tc.config.ApiURL, value.ImageName)
+			}
 			return
 		default:
 			var progressReq = map[string]any{
@@ -122,9 +130,8 @@ func (tc *TaskConsumer) consumeTask(taskInfo TaskInfo, client *req.Client) {
 			}
 			response, err := client.R().SetBody(progressReq).SetSuccessResult(&progressRes).Post(tc.config.ApiURL + "/internal/progress")
 			var cbReq = CBReq{TaskId: taskInfo.TaskId, Success: true}
-			if err != nil {
+			if err != nil { // TODO: 这里可以考虑设置失败重试次数
 				logger.Error(err)
-				// TODO: 这里可以考虑设置失败重试次数
 				return
 			}
 
@@ -135,7 +142,7 @@ func (tc *TaskConsumer) consumeTask(taskInfo TaskInfo, client *req.Client) {
 			}
 
 			cbReq.ImageData = progressRes.LivePreview
-			cbReq.Progress = progressRes.Progress
+			cbReq.Progress = int(progressRes.Progress * 100)
 			fmt.Println("Progress: ", progressRes.Progress)
 			fmt.Println("Image: ", progressRes.LivePreview)
 			time.Sleep(time.Second)

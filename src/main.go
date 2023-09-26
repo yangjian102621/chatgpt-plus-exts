@@ -5,6 +5,7 @@ import (
 	"chatgpt-plus-exts/handler"
 	logger2 "chatgpt-plus-exts/logger"
 	"chatgpt-plus-exts/modules/mj"
+	"chatgpt-plus-exts/modules/sd"
 	wexin "chatgpt-plus-exts/modules/weixin"
 	"chatgpt-plus-exts/store"
 	"context"
@@ -118,14 +119,30 @@ func main() {
 			}
 		}),
 
+		fx.Provide(sd.NewTaskConsumer),
+		fx.Provide(sd.NewSdClient),
+		fx.Invoke(func(config *core.Config, consumer *sd.TaskConsumer) {
+			if config.SdConfig.Enabled {
+				go func() {
+					consumer.Run()
+				}()
+			}
+		}),
+
 		// creating controller
 		fx.Provide(handler.NewMidJourneyHandler),
+		fx.Provide(handler.NewStableDiffusionHandler),
+
 		// register router
 		fx.Invoke(func(s *core.AppServer, h *handler.MidJourneyHandler) {
 			group := s.Engine.Group("/api/mj/")
 			group.POST("image", h.Image)
 			group.POST("upscale", h.Upscale)
 			group.POST("variation", h.Variation)
+		}),
+		fx.Invoke(func(s *core.AppServer, h *handler.StableDiffusionHandler) {
+			group := s.Engine.Group("/api/sd/")
+			group.POST("txt2img", h.Tex2Img)
 		}),
 
 		fx.Invoke(func(s *core.AppServer) {
